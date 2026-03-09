@@ -1,0 +1,11 @@
+[
+    {
+        "name": "A",
+        "rarity": "a",
+        "condition": "AA",
+        "float_value": 0.123,
+        "price": 90,
+        "recent_price": 100,
+        "profit": 10
+    }
+]
