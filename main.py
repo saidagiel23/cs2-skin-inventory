@@ -1,4 +1,5 @@
 import json
+import requests
 import locale
 
 
@@ -21,6 +22,7 @@ def save_data():
 def add_skin():
   print("\n=== Add New Skin ===")
 
+  weapon = input("Input Weapon Name :")
   name = input("Input Skin Name :")
   rarity = input("Input Skin Rarity :")
   condition = input("Input Skin Condition :")
@@ -28,8 +30,10 @@ def add_skin():
   price = int(input("Input Skin Price :"))
   recent_price = int(input("Input Recent Price :"))
   profit = recent_price - price
-
+  market_hash_name = f"{weapon} | {name} ({condition})"
+  
   skin = {
+        "weapon": weapon,
         "name": name,
         "rarity": rarity,
         "condition": condition,
@@ -50,7 +54,8 @@ def show_skin():
   for i, skin in enumerate(inventory):
       print(f"\n=== Skin {i+1} ===")
 
-      print("\nName:", skin["name"])
+      print("\nWeapon:", skin["weapon"])
+      print("Name:", skin["name"])
       print("Rarity:", skin["rarity"])
       print("Condition:", skin["condition"])
       print("Float:", skin["float_value"])
@@ -185,6 +190,52 @@ def summary():
   print("Total Buy: ", total_buy)
   print("Total Profit: ", total_profit)
   print("Average Profit: ", round(average_profit, 2))
+def get_steam_price(market_hash_name):
+  url = f"https://steamcommunity.com/market/priceoverview/?appid=730&currency=1&market_hash_name={market_hash_name}"
+
+  params = {
+    "appid": 730,
+    "currency": 1,
+    "market_hash_name": market_hash_name
+  }
+  headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+  }
+  
+  response = requests.get(url, params=params, headers=headers)
+  data = response.json()
+      
+  if data.get("success"):
+      price = data.get("lowest_price") or data.get("median_price")
+
+      if price:
+        price = price.replace("$", "").replace(",", "")
+        return float(price)
+  
+  return None
+def update_steam_price():
+  print("\n=== Update Steam Price ===")
+  if len(inventory) == 0:
+    print("Inventory is empty")
+    return
+
+  for skin in inventory:
+    steam_market_price = skin.get("market_hash_name")
+
+    if not steam_market_price : steam_market_price = f"{skin['weapon']} | {skin['name']} ({skin['condition']})"
+    steam_price = get_steam_price(steam_market_price)
+    
+    if steam_price:
+      skin["recent_price"] = steam_price
+      skin["profit"] = skin["recent_price"] - skin["price"]
+
+      print(f"{steam_market_price} updated")
+
+    else:
+      print(f"{steam_market_price} price not found")
+
+  save_data()
+    
 
 load_data()
 
@@ -199,7 +250,8 @@ while True:
   print("5. Update Skin")
   print("6. Summary")
   print("7. Sort by Profit")
-  print("8. Exit")
+  print("8. Update Steam Price")
+  print("9. Exit")
 
   choice = input("Choose Menu :")
 
@@ -221,6 +273,8 @@ while True:
   elif choice == "7":
     sort_profit()
   elif choice == "8":
+    update_steam_price()
+  elif choice == "9":
     print("Thank you for using CS Inventory!")
     break
   else:
